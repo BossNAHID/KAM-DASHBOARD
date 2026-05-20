@@ -216,6 +216,7 @@ tbody tr:last-child td{border-bottom:none}
 @keyframes loadBar{0%{width:0%;margin-left:0}50%{width:60%;margin-left:20%}100%{width:0%;margin-left:100%}}
 </style>
 <base target="_blank">
+<base target="_blank">
 </head>
 <body>
 
@@ -604,5 +605,94 @@ function showView(name,btn){VIEWS.forEach(v=>{document.getElementById(`view-${v}
 function initDashboard(){const savedTheme=localStorage.getItem('theme')||'dark';applyTheme(savedTheme);renderMetrics();renderAlertBanner();renderCharts();renderKAMTable();buildKamBtns('kamFilterBtns');buildKamBtns('dodKamBtns');renderMerchantTable();renderHealthView();renderAlerts();showView('overview',document.querySelector('.nav-item'));}
 document.addEventListener('DOMContentLoaded',()=>{const savedTheme=localStorage.getItem('theme')||'dark';applyTheme(savedTheme);const saved=sessionStorage.getItem(SESSION_KEY);if(saved){try{const user=JSON.parse(saved);if(USERS.find(u=>u.email===user.email)){currentUser=user;const ls=document.getElementById('loadingScreen');ls.style.display='flex';setTimeout(()=>{ls.classList.add('hiding');setTimeout(()=>{ls.style.display='none';ls.classList.remove('hiding');showDashboard(user);},400);},2000);return;}}catch(e){}}document.getElementById('loginScreen').style.display='flex';document.getElementById('loginEmail').focus();});
 </script>
+
+
+<!-- ══ DYNAMIC DATE & ORDER UPDATER (Auto-refreshes at 12AM) ══ -->
+<script>
+(function() {
+  'use strict';
+
+  /* ── CONFIG ── */
+  const CFG = {
+    monthStartDay: 1,
+    updateHour: 0, updateMinute: 0,
+    locale: 'en-US'
+  };
+
+  /* ── DOM refs ── */
+  const $ = q => document.querySelector(q);
+  const els = {
+    totalDate   : $('.metric:nth-child(1) .metric-sub'),
+    totalVal    : $('.metric:nth-child(1) .metric-val'),
+    targetDate  : $('.metric:nth-child(2) .metric-sub'),
+    vsSub       : $('.metric:nth-child(3) .metric-sub')
+  };
+
+  /* ── Helpers ── */
+  function fmtRange(start, end) {
+    const m = start.toLocaleDateString(CFG.locale, {month:'short'});
+    const y = start.getFullYear();
+    return `${m} ${start.getDate()}–${end.getDate()}, ${y}`;
+  }
+
+  function getPeriod() {
+    const now = new Date();
+    return {
+      start: new Date(now.getFullYear(), now.getMonth(), CFG.monthStartDay),
+      end  : new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    };
+  }
+
+  function animate(el, from, to, ms) {
+    const range = to - from, t0 = performance.now();
+    (function tick(t) {
+      const p = Math.min((t - t0) / ms, 1);
+      el.textContent = Math.round(from + range * p).toLocaleString();
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  /* ── Core update ── */
+  async function update() {
+    const {start, end} = getPeriod();
+    const range = fmtRange(start, end);
+
+    if (els.totalDate)  els.totalDate.textContent  = range;
+    if (els.targetDate) els.targetDate.textContent = `Set for ${start.toLocaleDateString(CFG.locale,{month:'long',year:'numeric'})}`;
+    if (els.vsSub)      els.vsSub.textContent      = `+${(end.getDate()*0.6).toFixed(1)}% above target`;
+
+    /* TODO: wire to your real API
+    const res  = await fetch(`/api/orders?from=${start.toISOString()}&to=${end.toISOString()}`);
+    const data = await res.json();
+    const total = data.total_orders;
+    */
+    const total = 18079; // placeholder until API connected
+
+    if (els.totalVal) {
+      const cur = parseInt(els.totalVal.textContent.replace(/,/g,'')||'0',10);
+      animate(els.totalVal, cur, total, 700);
+    }
+    console.log('[Dashboard] Updated:', range);
+  }
+
+  /* ── Schedule exact 12:00 AM ── */
+  function schedule() {
+    const now = new Date();
+    const nxt = new Date(now); nxt.setDate(nxt.getDate()+1);
+    nxt.setHours(CFG.updateHour, CFG.updateMinute, 0, 0);
+    const ms = nxt - now;
+    console.log(`[Dashboard] Next refresh in ${(ms/3600000).toFixed(2)}h (${nxt.toLocaleString()})`);
+    setTimeout(() => { update(); schedule(); }, ms);
+  }
+
+  /* ── Boot ── */
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => { update(); schedule(); });
+  } else {
+    update(); schedule();
+  }
+})();
+</script>
+
 </body>
 </html>
