@@ -571,59 +571,88 @@ function toggleTheme(){const isLight=document.body.classList.contains('light-mod
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebarOverlay').classList.add('active');document.body.style.overflow='hidden';}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebarOverlay').classList.remove('active');document.body.style.overflow='';}
 
-const DATES=['05/01','05/03','05/04','05/05','05/06','05/07','05/08','05/09','05/10','05/11','05/12','05/13','05/14','05/15'];
-const GRAND=[5904,1092,1140,1479,1254,1481,1182,1295,577,1269,2076,2031,683,595];
-const GAP=[0,-408,-360,-21,-246,-19,-318,-205,-923,-231,576,531,-817,-905];
 const KC=['#4a90e2','#2ecc8f','#f0a500','#e85c5c','#b07ef7'];
-const TOTAL=18079;
-const KAMS=[
-  {name:'Ahmed Asif Rashid',data:[9785,650,700,890,720,840,720,770,310,770,1460,1340,420,295]},
-  {name:'Nuruzzman Nahid',data:[3380,180,200,240,190,210,180,220,70,200,490,450,100,60]},
-  {name:'Ibrahim',data:[2367,325,380,620,462,520,460,370,165,136,2,44,34,0]},
-  {name:'MD Solayman Shadik Shady',data:[350,70,54,54,70,62,39,70,38,52,39,58,57,60]},
-  {name:'Shabib Md Shahnawaj',data:[715,52,75,68,60,88,76,84,82,80,76,80,62,88]},
-];
-const MX=[
-  {id:1136,name:'The Asia Express',cat:'Various Item',hub:'60 Feet',kam:'Ahmed Asif Rashid',aprAvg:106,aprT:1903,mayT:3126,gap:62,d:[312,180,220,260,201,215,198,240,90,420,560,410,130,90]},
-  {id:155,name:'Cheeta Express',cat:'Small Courier',hub:'Lalbagh',kam:'Ahmed Asif Rashid',aprAvg:60,aprT:1078,mayT:3286,gap:18,d:[280,90,95,110,87,93,78,92,40,160,580,510,60,11]},
-  {id:6813,name:'Nirias Mehendi',cat:'Mehendi',hub:'Uttara',kam:'Nuruzzman Nahid',aprAvg:23,aprT:417,mayT:343,gap:-97,d:[30,22,25,18,20,15,12,18,5,20,24,22,14,12]},
-  {id:797,name:'Monowa Mart',cat:'Baby Product',hub:'Lalbagh',kam:'Ahmed Asif Rashid',aprAvg:84,aprT:1503,mayT:2135,gap:11,d:[200,62,70,80,60,72,65,68,30,90,350,310,50,28]},
-  {id:3668,name:'Imrose Collection',cat:'Health & Beauty',hub:'Lalbagh',kam:'Nuruzzman Nahid',aprAvg:108,aprT:1944,mayT:1960,gap:0,d:[0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
-  {id:10769,name:'Online Shopping 365',cat:'Gadget & Accessories',hub:'Mohammadpur',kam:'Ahmed Asif Rashid',aprAvg:65,aprT:1166,mayT:1370,gap:27,d:[130,55,60,70,58,62,55,65,30,70,200,190,40,35]},
-  {id:433,name:'Ezzy Shop BD',cat:'Various Item',hub:'60 Feet',kam:'Ahmed Asif Rashid',aprAvg:63,aprT:1141,mayT:1781,gap:-10,d:[170,50,55,65,52,58,50,58,25,75,310,280,45,18]},
-  {id:12005,name:'Glow Skin Secrets',cat:'Various Item',hub:'Pallabi',kam:'Nuruzzman Nahid',aprAvg:85,aprT:1530,mayT:2461,gap:20,d:[240,70,80,90,75,82,70,90,28,95,400,360,55,26]},
-  {id:7308,name:'Kaniz Boutique',cat:'Clothing',hub:'Pallabi',kam:'Ahmed Asif Rashid',aprAvg:68,aprT:1215,mayT:1633,gap:-5,d:[155,60,65,75,58,65,58,65,28,68,260,240,42,16]},
-  {id:464,name:'Sumaiya Hair Tonic',cat:'Health & Beauty',hub:'Khilgaon',kam:'Ahmed Asif Rashid',aprAvg:12,aprT:216,mayT:206,gap:0,d:[0,0,0,0,0,0,0,0,0,0,0,0,0,0]},
-  {id:9622,name:'Exotic Evana',cat:'Health & Beauty',hub:'Uttara',kam:'Nuruzzman Nahid',aprAvg:8,aprT:151,mayT:240,gap:-24,d:[22,8,10,12,9,10,8,11,4,0,0,12,8,10]},
-  {id:2689,name:'Happy Purchase BD',cat:'Gadget & Accessories',hub:'Khilgaon',kam:'Ahmed Asif Rashid',aprAvg:63,aprT:1142,mayT:1928,gap:-11,d:[180,58,62,72,56,64,55,68,25,72,320,300,46,20]},
-  {id:14345,name:'Shopping BD Top Store',cat:'Various Item',hub:'Mohammadpur',kam:'Ahmed Asif Rashid',aprAvg:293,aprT:5267,mayT:4972,gap:30,d:[500,220,240,280,200,230,210,250,100,240,750,680,120,52]},
-  {id:6342,name:'SkDream',cat:'Gadget & Accessories',hub:'60 Feet',kam:'Ahmed Asif Rashid',aprAvg:60,aprT:1072,mayT:2489,gap:-4,d:[240,55,60,68,55,60,52,62,25,65,430,400,58,22]},
-  {id:7003,name:'Trendy Hoodie',cat:'Clothing',hub:'Pallabi',kam:'Nuruzzman Nahid',aprAvg:73,aprT:1306,mayT:1920,gap:8,d:[180,65,72,80,68,75,62,78,28,82,330,300,50,20]},
-  {id:11659,name:'dreamerhaat.com',cat:'Various Item',hub:'60 Feet',kam:'Ahmed Asif Rashid',aprAvg:33,aprT:599,mayT:1092,gap:-11,d:[100,30,32,40,28,32,28,34,15,35,200,180,32,10]},
-  {id:5097,name:'Arinel Limited',cat:'Clothing',hub:'Mohammadpur',kam:'Nuruzzman Nahid',aprAvg:27,aprT:490,mayT:671,gap:12,d:[60,25,28,32,25,28,22,30,10,32,120,110,22,12]},
-  {id:4783,name:'Al-henna by Zarim',cat:'Mehendi',hub:'Uttara',kam:'Nuruzzman Nahid',aprAvg:8,aprT:147,mayT:123,gap:4,d:[10,6,7,8,6,7,6,8,3,8,15,14,5,3]},
-  {id:9549,name:'FastEx Courier',cat:'Small Courier',hub:'Mirpur 60ft',kam:'Ahmed Asif Rashid',aprAvg:86,aprT:1547,mayT:1439,gap:1,d:[140,62,68,78,62,68,60,70,28,75,260,250,44,18]},
-  {id:13437,name:'Onlineshopbd',cat:'Various Item',hub:'60 feet',kam:'Ahmed Asif Rashid',aprAvg:22,aprT:394,mayT:478,gap:-10,d:[44,20,22,26,20,22,18,22,8,22,80,75,16,8]},
-  {id:6195,name:'Crishe',cat:'Crafts & Jewellery',hub:'Jatrabari',kam:'Nuruzzman Nahid',aprAvg:16,aprT:283,mayT:195,gap:33,d:[18,12,14,16,12,14,10,15,5,14,28,26,10,5]},
-  {id:13476,name:'SAREEZ BY SAKYLA',cat:'Clothing',hub:'Lalbagh',kam:'Ahmed Asif Rashid',aprAvg:20,aprT:352,mayT:419,gap:-9,d:[38,18,20,22,16,18,15,20,8,20,72,68,14,6]},
-  {id:3289,name:'Shemonty',cat:'Gadget & Accessories',hub:'Mohammadpur',kam:'Ahmed Asif Rashid',aprAvg:8,aprT:139,mayT:353,gap:7,d:[30,8,10,12,8,9,7,10,4,10,60,55,12,5]},
-  {id:11807,name:'pipilika.com',cat:'Various Item',hub:'pallabi',kam:'Nuruzzman Nahid',aprAvg:3,aprT:54,mayT:211,gap:4,d:[20,5,6,8,4,5,4,6,2,5,40,38,8,0]},
-  {id:176,name:'Shehzeen Fashion',cat:'Clothing',hub:'Uttara',kam:'Ahmed Asif Rashid',aprAvg:6,aprT:108,mayT:123,gap:-2,d:[11,5,6,7,5,6,5,6,3,6,22,20,4,2]},
-  {id:2201,name:'Siddiqui Fabrics',cat:'Clothing',hub:'Uttara',kam:'Ibrahim',aprAvg:45,aprT:810,mayT:820,gap:5,d:[820,50,60,100,80,90,80,60,25,20,0,8,6,0]},
-  {id:3302,name:'Priya Electronics',cat:'Gadget & Accessories',hub:'Mirpur',kam:'Ibrahim',aprAvg:62,aprT:1116,mayT:1120,gap:8,d:[1120,70,80,120,100,110,100,80,40,35,0,10,8,0]},
-  {id:4403,name:'Dhaka Handicrafts',cat:'Crafts & Jewellery',hub:'Lalbagh',kam:'Ibrahim',aprAvg:38,aprT:684,mayT:700,gap:2,d:[700,60,70,100,72,80,72,60,30,28,1,10,8,0]},
-  {id:5504,name:'NightOwl Courier',cat:'Small Courier',hub:'Pallabi',kam:'Ibrahim',aprAvg:55,aprT:990,mayT:1007,gap:3,d:[1007,80,100,180,120,140,120,100,42,35,0,8,6,0]},
-  {id:6605,name:'TechZone BD',cat:'Gadget & Accessories',hub:'60 Feet',kam:'Ibrahim',aprAvg:40,aprT:720,mayT:720,gap:0,d:[720,65,70,120,90,100,88,70,28,18,1,8,6,0]},
-  {id:7701,name:'Bloom Boutique',cat:'Clothing',hub:'Jatrabari',kam:'MD Solayman Shadik Shady',aprAvg:30,aprT:540,mayT:600,gap:5,d:[90,18,14,14,18,16,10,18,10,12,10,14,14,16]},
-  {id:8802,name:'Glamour Jewels',cat:'Crafts & Jewellery',hub:'Khilgaon',kam:'MD Solayman Shadik Shady',aprAvg:22,aprT:396,mayT:440,gap:3,d:[60,14,10,10,14,12,8,14,8,10,8,12,12,12]},
-  {id:9903,name:'SafeDeliver Co.',cat:'Small Courier',hub:'Mohammadpur',kam:'MD Solayman Shadik Shady',aprAvg:28,aprT:504,mayT:520,gap:2,d:[80,16,12,12,16,14,9,16,8,12,9,14,13,14]},
-  {id:10004,name:'BabyFirst BD',cat:'Baby Product',hub:'Uttara',kam:'MD Solayman Shadik Shady',aprAvg:40,aprT:720,mayT:720,gap:0,d:[120,22,18,18,22,20,12,22,12,18,12,18,18,18]},
-  {id:11105,name:'Regal Clothing',cat:'Clothing',hub:'Pallabi',kam:'Shabib Md Shahnawaj',aprAvg:50,aprT:900,mayT:950,gap:4,d:[190,14,20,18,16,25,21,24,23,22,22,22,17,25]},
-  {id:12206,name:'SwiftPack Courier',cat:'Small Courier',hub:'60 Feet',kam:'Shabib Md Shahnawaj',aprAvg:55,aprT:990,mayT:1050,gap:3,d:[210,16,22,20,18,28,23,26,25,24,24,24,18,28]},
-  {id:13307,name:'MediPlus BD',cat:'Health & Beauty',hub:'Jatrabari',kam:'Shabib Md Shahnawaj',aprAvg:45,aprT:810,mayT:860,gap:2,d:[170,12,18,16,15,22,18,22,20,20,20,20,16,22]},
-  {id:14408,name:'KidsWorld',cat:'Baby Product',hub:'Mirpur',kam:'Shabib Md Shahnawaj',aprAvg:38,aprT:684,mayT:720,gap:2,d:[145,10,15,14,12,18,15,18,16,16,16,16,14,18]},
-];
-function hPct(m){if(!m.aprAvg||m.aprAvg===0)return m.mayT>0?100:0;return Math.round((m.mayT/14)/m.aprAvg*100);}
+// ── Google Sheets Live Data Integration ─────────────────────────────────────
+const SHEET_CSV='https://docs.google.com/spreadsheets/d/e/2PACX-1vTkob7leUfhr6a2pRkjqmFi5IUcdimnsg5DGr38z6yigbXDnKgSIe_T6x1sHJC6VxF_lMiyAJdEuxoF/pub?output=csv';
+let DATES=[],GRAND=[],GAP=[],KAMS=[],MX=[],TOTAL=0,_MONTHLY_TARGET=0;
+let _dataReady=false;
+function _parseCSV(text){const lines=text.trim().split('\n');return lines.map(line=>{const cols=[];let cur='',inQ=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){cols.push(cur.trim());cur='';}else{cur+=c;}}cols.push(cur.trim());return cols;});}
+function _buildData(rows){
+  if(!rows||rows.length<2)return false;
+  const header=rows[0];
+  const dateCols=[];
+  for(let c=7;c<header.length;c++){if(header[c]&&header[c].trim())dateCols.push({idx:c,label:header[c].trim()});}
+  if(!dateCols.length)return false;
+  DATES=dateCols.map(d=>d.label);
+  let grandRow=null,targetRow=null,merchantRows=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r];if(!row||!row[0]||row[0].trim()==='')continue;
+    const id0=(row[0]||'').trim().toUpperCase();
+    if(id0==='DAILY TOTAL'||id0==='GRAND TOTAL'||id0==='TOTAL')grandRow=row;
+    else if(id0==='TARGET'||id0==='MONTHLY TARGET')targetRow=row;
+    else merchantRows.push(row);
+  }
+  MX=merchantRows.map(row=>{
+    const d=dateCols.map(dc=>Math.max(0,parseInt(row[dc.idx]||0)||0));
+    const mayT=d.reduce((a,b)=>a+b,0);
+    const aprAvg=Math.max(0,parseInt(row[5]||0)||0);
+    const aprT=Math.max(0,parseInt(row[6]||0)||0);
+    const mayAvg=DATES.length>0?Math.round(mayT/DATES.length):0;
+    const gap=mayAvg-aprAvg;
+    return{id:parseInt(row[0])||0,name:(row[1]||'').trim(),cat:(row[2]||'').trim(),hub:(row[3]||'').trim(),kam:(row[4]||'').trim(),aprAvg,aprT,mayT,gap,d};
+  });
+  TOTAL=MX.reduce((a,m)=>a+m.mayT,0);
+  if(grandRow){const sumD=dateCols.map(dc=>parseInt(grandRow[dc.idx]||0)||0);GRAND=[TOTAL,...sumD];}
+  else{const sumD=dateCols.map(dc=>merchantRows.reduce((s,r)=>s+(parseInt(r[dc.idx]||0)||0),0));GRAND=[TOTAL,...sumD];}
+  if(targetRow){const tv=parseInt(targetRow[6]||targetRow[7]||0)||0;_MONTHLY_TARGET=tv>0?tv:Math.round(TOTAL*0.916);}
+  else{_MONTHLY_TARGET=Math.round(TOTAL*0.916);}
+  const dailyTarget=Math.round(_MONTHLY_TARGET/Math.max(DATES.length,1));
+  GAP=[0,...GRAND.slice(1).map(v=>v-dailyTarget)];
+  const kamNames=[...new Set(MX.map(m=>m.kam).filter(Boolean))];
+  KAMS=kamNames.map(name=>{
+    const ms=MX.filter(m=>m.kam===name);
+    const total=ms.reduce((a,m)=>a+m.mayT,0);
+    const daily=dateCols.map((_,di)=>ms.reduce((a,m)=>a+(m.d[di]||0),0));
+    return{name,data:[total,...daily]};
+  });
+  return true;
+}
+async function loadSheetData(silent=false){
+  try{
+    const resp=await fetch(SHEET_CSV+'&_t='+Date.now(),{cache:'no-store'});
+    if(!resp.ok)throw new Error('HTTP '+resp.status);
+    const text=await resp.text();
+    const rows=_parseCSV(text);
+    const ok=_buildData(rows);
+    if(!ok)throw new Error('Parse failed — check sheet structure');
+    _dataReady=true;
+    return true;
+  }catch(e){
+    console.warn('[CarryBee Dashboard] Sheet load failed:',e.message);
+    return _dataReady; // return true if we already have data
+  }
+}
+function scheduleRefresh(){
+  const now=new Date();
+  const next=new Date(now);
+  next.setHours(13,0,5,0); // 1:00:05 PM
+  if(next<=now)next.setDate(next.getDate()+1);
+  const ms=next-now;
+  setTimeout(async()=>{
+    const ok=await loadSheetData(true);
+    if(ok&&_dataReady){
+      if(dailyChartObj){dailyChartObj.destroy();dailyChartObj=null;}
+      if(pieChartObj){pieChartObj.destroy();pieChartObj=null;}
+      if(healthChartObj){healthChartObj.destroy();healthChartObj=null;}
+      renderMetrics();renderAlertBanner();renderCharts();renderKAMTable();
+      buildKamBtns('kamFilterBtns');buildKamBtns('dodKamBtns');
+      renderMerchantTable();renderHealthView();renderAlerts();
+      console.log('[CarryBee Dashboard] Auto-refreshed at 1PM');
+    }
+    scheduleRefresh();
+  },ms);
+}
+function hPct(m){if(!m.aprAvg||m.aprAvg===0)return m.mayT>0?100:0;const days=Math.max(DATES.length,1);return Math.round((m.mayT/days)/m.aprAvg*100);}
 function hGrade(p){if(p<=60)return{cls:'poor',label:'Poor',bc:'hbadge-poor'};if(p<=80)return{cls:'good',label:'Good',bc:'hbadge-good'};return{cls:'better',label:'Better',bc:'hbadge-better'};}
 function rgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`${r},${g},${b}`;}
 function kamColor(name){const i=KAMS.findIndex(k=>k.name===name);return i>=0?KC[i]:'#7b8799';}
@@ -631,7 +660,25 @@ function zeroAlerts(){return MX.map(m=>{const d=m.d;let streak=0,sIdx=-1;for(let
 let dailyChartObj=null,pieChartObj=null,healthChartObj=null;
 function getChartColors(){const light=document.body.classList.contains('light-mode');return{gridColor:light?'rgba(0,0,0,0.06)':'rgba(255,255,255,0.04)',tickColor:light?'#9ca3af':'#404d61',tooltipBg:light?'#ffffff':'#161b24',tooltipBorder:light?'rgba(0,0,0,0.1)':'rgba(255,255,255,0.1)',tooltipTitle:light?'#111827':'#e8ecf4',tooltipBody:light?'#4b5563':'#7b8799',borderBg:light?'#f0f4f9':'#0f1319'};}
 function updateChartTheme(){const cc=getChartColors();[dailyChartObj,pieChartObj,healthChartObj].forEach(ch=>{if(!ch)return;if(ch.options.scales){Object.values(ch.options.scales).forEach(axis=>{if(axis.ticks)axis.ticks.color=cc.tickColor;if(axis.grid)axis.grid.color=cc.gridColor;});}if(ch.options.plugins?.tooltip){ch.options.plugins.tooltip.backgroundColor=cc.tooltipBg;ch.options.plugins.tooltip.borderColor=cc.tooltipBorder;ch.options.plugins.tooltip.titleColor=cc.tooltipTitle;ch.options.plugins.tooltip.bodyColor=cc.tooltipBody;}if(ch.config.type==='doughnut'&&ch.data.datasets[0]){ch.data.datasets[0].borderColor=cc.borderBg;}ch.update('none');});}
-function renderMetrics(){const za=zeroAlerts().length;const defs=[{l:'Total Orders',v:'18,079',sub:'May 1–15, 2026',mc:'#f5c518'},{l:'Monthly Target',v:'16,579',sub:'Set for May 2026',mc:'#535f73'},{l:'vs Target',v:'+1,500',sub:'+9.0% above target',mc:'#2ecc8f',vc:'up'},{l:'Daily Average',v:'1,291',sub:'Orders/active day',mc:'#b07ef7'},{l:'Total Merchants',v:MX.length+'',sub:'Across 5 KAMs',mc:'#f0a500'},{l:'Zero Alerts',v:za+'',sub:'Need immediate action',mc:'#e85c5c',vc:'dn'}];document.getElementById('metricsRow').innerHTML=defs.map((d,i)=>`<div class="metric" style="--mc:${d.mc};animation-delay:${i*.05}s"><div class="metric-lbl">${d.l}</div><div class="metric-val ${d.vc||''}">${d.v}</div><div class="metric-sub">${d.sub}</div></div>`).join('');}
+function renderMetrics(){
+  const za=zeroAlerts().length;
+  const vsTarget=TOTAL-_MONTHLY_TARGET;
+  const vsTargetStr=(vsTarget>=0?'+':'')+vsTarget.toLocaleString();
+  const vsTargetPct=_MONTHLY_TARGET>0?((vsTarget/_MONTHLY_TARGET)*100).toFixed(1):'0';
+  const vsTargetSub=(vsTarget>=0?'+':'')+vsTargetPct+'% '+(vsTarget>=0?'above':'below')+' target';
+  const activeDays=GRAND.slice(1).filter(v=>v>0).length||1;
+  const dailyAvg=Math.round(TOTAL/activeDays);
+  const dateRange=DATES.length>0?DATES[0]+' – '+DATES[DATES.length-1]:'—';
+  const defs=[
+    {l:'Total Orders',v:TOTAL.toLocaleString(),sub:dateRange,mc:'#f5c518'},
+    {l:'Monthly Target',v:_MONTHLY_TARGET.toLocaleString(),sub:'Set for this period',mc:'#535f73'},
+    {l:'vs Target',v:vsTargetStr,sub:vsTargetSub,mc:vsTarget>=0?'#2ecc8f':'#e85c5c',vc:vsTarget>=0?'up':'dn'},
+    {l:'Daily Average',v:dailyAvg.toLocaleString(),sub:'Orders/active day',mc:'#b07ef7'},
+    {l:'Total Merchants',v:MX.length+'',sub:'Across '+KAMS.length+' KAMs',mc:'#f0a500'},
+    {l:'Zero Alerts',v:za+'',sub:'Need immediate action',mc:'#e85c5c',vc:'dn'}
+  ];
+  document.getElementById('metricsRow').innerHTML=defs.map((d,i)=>`<div class="metric" style="--mc:${d.mc};animation-delay:${i*.05}s"><div class="metric-lbl">${d.l}</div><div class="metric-val ${d.vc||''}">${d.v}</div><div class="metric-sub">${d.sub}</div></div>`).join('');
+}
 function renderAlertBanner(){const n=zeroAlerts().length;document.getElementById('alertCount').textContent=n;if(n>0){document.getElementById('alertBanner').style.display='flex';document.getElementById('alertBannerText').textContent=`🚨 ${n} merchant${n>1?'s':''} detected`;}}
 function renderCharts(){const cc=getChartColors();const dl=DATES.slice(1),do_=GRAND.slice(1),dg=GAP.slice(1);if(dailyChartObj){dailyChartObj.destroy();}dailyChartObj=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:dl,datasets:[{label:'Orders',data:do_,backgroundColor:'rgba(245,197,24,0.18)',borderColor:'#f5c518',borderWidth:1.5,borderRadius:3,order:2},{label:'vs Target',data:dg,type:'line',borderColor:'#e85c5c',backgroundColor:'transparent',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#e85c5c',pointBorderColor:cc.borderBg,pointBorderWidth:1.5,borderDash:[5,3],yAxisID:'y2',order:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:cc.tooltipBg,borderColor:cc.tooltipBorder,borderWidth:1,titleColor:cc.tooltipTitle,bodyColor:cc.tooltipBody,mode:'index'}},scales:{x:{ticks:{color:cc.tickColor,font:{size:9},autoSkip:false,maxRotation:45},grid:{color:cc.gridColor}},y:{ticks:{color:cc.tickColor,font:{size:9}},grid:{color:cc.gridColor}},y2:{position:'right',ticks:{color:cc.tickColor,font:{size:9}},grid:{display:false}}}}});const pl=document.getElementById('pieLegend');pl.innerHTML='';KAMS.forEach((k,i)=>{pl.innerHTML+=`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:2px;background:${KC[i]};flex-shrink:0"></div>${k.name.split(' ')[0]}</div>`;});if(pieChartObj){pieChartObj.destroy();}pieChartObj=new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:KAMS.map(k=>k.name.split(' ')[0]),datasets:[{data:KAMS.map(k=>k.data[0]),backgroundColor:KC,borderWidth:3,borderColor:cc.borderBg}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{backgroundColor:cc.tooltipBg,borderColor:cc.tooltipBorder,borderWidth:1,callbacks:{label:c=>` ${c.label}: ${c.raw.toLocaleString()} (${Math.round(c.raw/TOTAL*100)}%)`}}}}});}
 function renderKAMTable(){document.getElementById('kamTableBody').innerHTML=KAMS.map((k,i)=>{const daily=k.data.slice(1),total=k.data[0];const share=Math.round(total/TOTAL*100);const avg=Math.round(daily.reduce((a,b)=>a+b,0)/daily.length);const peak=Math.max(...daily);const diff=daily.slice(-4).reduce((a,b)=>a+b,0)-daily.slice(0,4).reduce((a,b)=>a+b,0);const badge=diff>50?`<span class="hbadge hbadge-better">↑ Trending</span>`:diff<-100?`<span class="hbadge hbadge-poor">↓ Slowing</span>`:`<span class="hbadge hbadge-good">~ Stable</span>`;const mx=Math.max(...daily)||1;const spark=`<span class="spark">${daily.map(v=>`<span class="spark-bar" style="background:${KC[i]};opacity:0.7;height:${Math.round(v/mx*16)+2}px"></span>`).join('')}</span>`;return`<tr><td><div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${KC[i]};flex-shrink:0"></div><span style="font-weight:500">${k.name}</span></div></td><td class="r">${total.toLocaleString()}</td><td class="r">${share}%</td><td class="c">${badge}</td><td class="r">${peak.toLocaleString()}</td><td class="r">${avg.toLocaleString()}</td><td>${spark}</td></tr>`;}).join('');}
@@ -645,7 +692,22 @@ function renderHealthView(){const all=MX.map(hPct);const poor=all.filter(p=>p<=6
 function renderAlerts(){const alerts=zeroAlerts();const el=document.getElementById('alertsList');if(!alerts.length){el.innerHTML=`<div style="text-align:center;padding:3rem;color:var(--text3);font-size:14px">✅ No zero-order alerts at this time.</div>`;return;}el.innerHTML=`<div style="margin-bottom:1rem;padding:10px 14px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r-sm);font-size:12px;color:var(--text2)"><strong style="color:var(--red)">Alert Rule:</strong> Merchant with 0 orders on 2 consecutive days → 3rd day triggers this alert. ${alerts.length} active alert${alerts.length>1?'s':''}.</div>`+alerts.map(({m,streak,startIdx})=>{const p=hPct(m),g=hGrade(p),kc=kamColor(m.kam),recent=m.d.slice(-7);return`<div class="alert-card"><div class="alert-card-top"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span class="pulse-dot"></span><span style="font-size:14px;font-weight:600">${m.name}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)">#${m.id}</span></div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">📍 Hub: <b>${m.hub||'—'}</b> &nbsp;·&nbsp; 🏷 ${m.cat}</div><div style="font-size:11px;color:var(--text2)">👤 KAM: <b style="color:${kc}">${m.kam}</b></div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:2px">Consecutive zero days</div><div style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--red);line-height:1">${streak}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Since ${DATES[startIdx]||'—'}</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:5px">Merchant Health</div><span class="hbadge ${g.bc}" style="font-size:12px;padding:4px 12px">${p}% · ${g.label}</span><div style="margin-top:8px;font-size:11px;color:var(--text3)">May total: <b style="color:var(--text2)">${m.mayT.toLocaleString()}</b></div><div style="font-size:11px;color:var(--text3)">Apr avg/day: <b style="color:var(--text2)">${m.aprAvg}</b></div></div></div><div><div style="font-size:9px;color:var(--text3);margin-bottom:5px;letter-spacing:0.06em;text-transform:uppercase">Last 7 days — ${DATES.slice(-7).join(' · ')}</div><div class="alert-recent">${recent.map((v,i)=>{const isZ=v===0;const bg=isZ?'rgba(232,92,92,0.2)':'rgba(74,144,226,0.15)';const c=isZ?'#e85c5c':'#7b8799';return`<div class="alert-day-cell" style="background:${bg}"><div style="font-size:9px;color:var(--text3)">${(DATES[DATES.length-7+i]||'').slice(3)}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:${c};margin-top:2px">${v===0?'✕':v}</div></div>`;}).join('')}</div></div></div>`;}).join('');}
 const VIEWS=['overview','merchants','dod','health','alerts'];
 function showView(name,btn){VIEWS.forEach(v=>{document.getElementById(`view-${v}`).style.display=v===name?'block':'none';});document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');if(name==='dod')renderDODGrid();closeSidebar();}
-function initDashboard(){const savedTheme=localStorage.getItem('theme')||'dark';applyTheme(savedTheme);renderMetrics();renderAlertBanner();renderCharts();renderKAMTable();buildKamBtns('kamFilterBtns');buildKamBtns('dodKamBtns');renderMerchantTable();renderHealthView();renderAlerts();showView('overview',document.querySelector('.nav-item'));}
+async function initDashboard(){
+  const savedTheme=localStorage.getItem('theme')||'dark';
+  applyTheme(savedTheme);
+  // Show loading state in metrics
+  document.getElementById('metricsRow').innerHTML='<div style="color:var(--text3);font-size:12px;padding:0.5rem 0">🔄 Loading live data from Google Sheets…</div>';
+  const ok=await loadSheetData();
+  if(!ok||!_dataReady){
+    document.getElementById('metricsRow').innerHTML='<div style="color:var(--red);font-size:12px;padding:0.5rem 0">⚠️ Could not load data. Check sheet URL or network connection.</div>';
+    return;
+  }
+  renderMetrics();renderAlertBanner();renderCharts();renderKAMTable();
+  buildKamBtns('kamFilterBtns');buildKamBtns('dodKamBtns');
+  renderMerchantTable();renderHealthView();renderAlerts();
+  showView('overview',document.querySelector('.nav-item'));
+  scheduleRefresh(); // start 1PM daily auto-refresh
+}
 document.addEventListener('DOMContentLoaded',()=>{const savedTheme=localStorage.getItem('theme')||'dark';applyTheme(savedTheme);const saved=sessionStorage.getItem(SESSION_KEY);if(saved){try{const user=JSON.parse(saved);if(USERS.find(u=>u.email===user.email)){currentUser=user;const ls=document.getElementById('loadingScreen');ls.style.display='flex';setTimeout(()=>{ls.classList.add('hiding');setTimeout(()=>{ls.style.display='none';ls.classList.remove('hiding');showDashboard(user);},400);},2000);return;}}catch(e){}}document.getElementById('loginScreen').style.display='flex';document.getElementById('loginEmail').focus();});
 </script>
 </body>
