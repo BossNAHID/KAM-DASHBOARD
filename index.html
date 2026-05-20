@@ -259,7 +259,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="eye-btn" id="eyeBtn" onclick="toggleEye()" type="button" title="Show/hide">👁</button>
       </div>
     </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()" type="button">Sign In →</button>
+    <button class="login-btn" id="loginBtn" onclick="doLogin(event)" type="button">Sign In →</button>
     <div class="login-footer-note">
       Access is restricted to CarryBee KAM team members.<br>
       Contact your manager if you need access.
@@ -506,7 +506,7 @@ const USERS=[
 ];
 const SESSION_KEY='grid_dash_user';
 let currentUser=null;
-function doLogin(e){e&&e.preventDefault&&e.preventDefault();
+function doLogin(e){if(e&&e.preventDefault)e.preventDefault();
   const emailRaw=document.getElementById('loginEmail').value.trim().toLowerCase();
   const passRaw=document.getElementById('loginPass').value.trim().toUpperCase();
   const err=document.getElementById('loginError');
@@ -520,9 +520,11 @@ function doLogin(e){e&&e.preventDefault&&e.preventDefault();
   btn.classList.add('loading');btn.textContent='Signing in…';
   setTimeout(()=>{
     const user=USERS.find(u=>u.email===emailRaw&&u.id===passRaw);
+    console.log('[Login] User found:',user?user.name:'none');
     if(user){
       currentUser=user;
       console.log('[Login] Success for:',user.name);
+      alert('Login successful! Loading dashboard...');
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(user));
       // Show loading screen
       const ls=document.getElementById('loadingScreen');
@@ -540,6 +542,8 @@ function doLogin(e){e&&e.preventDefault&&e.preventDefault();
     } else {
       btn.classList.remove('loading');btn.textContent='Sign In →';
       document.getElementById('loginErrorMsg').textContent='Invalid email or employee ID. Please try again.';
+      console.log('[Login] Failed:',emailRaw,passRaw);
+      alert('Login failed! Check email and password.\nEmail: '+emailRaw+'\nPassword: '+passRaw);
       err.classList.add('show');
       document.getElementById('loginPass').value='';
       document.getElementById('loginPass').focus();
