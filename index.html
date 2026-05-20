@@ -259,7 +259,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="eye-btn" id="eyeBtn" onclick="toggleEye()" type="button" title="Show/hide">👁</button>
       </div>
     </div>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">Sign In →</button>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()" type="button">Sign In →</button>
     <div class="login-footer-note">
       Access is restricted to CarryBee KAM team members.<br>
       Contact your manager if you need access.
@@ -497,8 +497,8 @@ tbody tr:last-child td{border-bottom:none}
 
 <script>
 const USERS=[
-  { email: 'nuruzzaman.nahid@carrybee.com', id: 'CL-84175', name: 'Nuruzzman Nahid',         initials: 'NN', color: '#2ecc8f' },
-  { email: 'asif.rashid@carrybee.com',      id: 'CL-86026', name: 'Ahmed Asif Rashid',        initials: 'AR', color: '#4a90e2' },
+  { email: 'nuruzzaman.nahid@carrybee.com', id: 'CL-84175', name: 'Nuruzzaman Nahid',         initials: 'NN', color: '#2ecc8f' },
+  { email: 'ahmed.asif@carrybee.com',       id: 'CL-86026', name: 'Ahmed Asif Rashid',        initials: 'AR', color: '#4a90e2' },
   { email: 'ibrahim@carrybee.com',           id: 'CL-00000', name: 'Ibrahim',                  initials: 'IB', color: '#f0a500' },
   { email: 'shadik.shady@carrybee.com',      id: 'CL-00001', name: 'MD Solayman Shadik Shady', initials: 'SS', color: '#e85c5c' },
   { email: 'shabib.shahnawaj@carrybee.com',  id: 'CL-00002', name: 'Shabib Md Shahnawaj',     initials: 'SH', color: '#b07ef7' },
@@ -506,11 +506,12 @@ const USERS=[
 ];
 const SESSION_KEY='grid_dash_user';
 let currentUser=null;
-function doLogin(){
+function doLogin(e){e&&e.preventDefault&&e.preventDefault();
   const emailRaw=document.getElementById('loginEmail').value.trim().toLowerCase();
   const passRaw=document.getElementById('loginPass').value.trim().toUpperCase();
   const err=document.getElementById('loginError');
   const btn=document.getElementById('loginBtn');
+  console.log('[Login] Attempt:',emailRaw,passRaw);
   err.classList.remove('show');
   if(!emailRaw||!passRaw){
     document.getElementById('loginErrorMsg').textContent='Please enter your email and employee ID.';
@@ -521,6 +522,7 @@ function doLogin(){
     const user=USERS.find(u=>u.email===emailRaw&&u.id===passRaw);
     if(user){
       currentUser=user;
+      console.log('[Login] Success for:',user.name);
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(user));
       // Show loading screen
       const ls=document.getElementById('loadingScreen');
