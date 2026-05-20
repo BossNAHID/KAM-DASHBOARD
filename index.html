@@ -584,32 +584,56 @@ function _parseCSV(text){const lines=text.trim().split('\n');return lines.map(li
 function _buildData(rows){
   if(!rows||rows.length<2)return false;
   const header=rows[0];
+  // ── Column Layout (0-indexed, matching actual sheet A–AY) ──
+  // A(0)=Row#/SL  B(1)=Category  C(2)=Merchant Name  D(3)=Merchant ID
+  // E(4)=Hub      F(5)=Apr Avg   G(6)=KAM Name        H–U(7-20)=other cols
+  // V(21)–AY(50) = Daily order dates
+  const COL_NAME=2,COL_ID=3,COL_HUB=4,COL_KAM=6,COL_APR_AVG=5,COL_APR_T=7;
+  const DATE_START=21; // col V
   const dateCols=[];
-  for(let c=7;c<header.length;c++){if(header[c]&&header[c].trim())dateCols.push({idx:c,label:header[c].trim()});}
+  for(let c=DATE_START;c<header.length;c++){if(header[c]&&header[c].trim())dateCols.push({idx:c,label:header[c].trim()});}
+  // Fallback: if no dates found at V+, try original col H+ (idx 7)
+  if(!dateCols.length){
+    for(let c=7;c<header.length;c++){if(header[c]&&header[c].trim())dateCols.push({idx:c,label:header[c].trim()});}
+  }
   if(!dateCols.length)return false;
   DATES=dateCols.map(d=>d.label);
   let grandRow=null,targetRow=null,merchantRows=[];
   for(let r=1;r<rows.length;r++){
-    const row=rows[r];if(!row||!row[0]||row[0].trim()==='')continue;
-    const id0=(row[0]||'').trim().toUpperCase();
-    if(id0==='DAILY TOTAL'||id0==='GRAND TOTAL'||id0==='TOTAL')grandRow=row;
-    else if(id0==='TARGET'||id0==='MONTHLY TARGET')targetRow=row;
-    else merchantRows.push(row);
+    const row=rows[r];
+    // Skip fully empty rows
+    if(!row||row.every(c=>!c||c.trim()===''))continue;
+    // Detect special rows by checking col C (merchant name) or col A
+    const checkCols=[(row[COL_NAME]||'').trim().toUpperCase(),(row[0]||'').trim().toUpperCase()];
+    if(checkCols.some(v=>v==='DAILY TOTAL'||v==='GRAND TOTAL'||v==='TOTAL')){grandRow=row;}
+    else if(checkCols.some(v=>v==='TARGET'||v==='MONTHLY TARGET')){targetRow=row;}
+    else if((row[COL_NAME]||'').trim()!==''||(row[COL_ID]||'').trim()!==''){
+      merchantRows.push(row);
+    }
   }
   MX=merchantRows.map(row=>{
     const d=dateCols.map(dc=>Math.max(0,parseInt(row[dc.idx]||0)||0));
     const mayT=d.reduce((a,b)=>a+b,0);
-    const aprAvg=Math.max(0,parseInt(row[5]||0)||0);
-    const aprT=Math.max(0,parseInt(row[6]||0)||0);
+    const aprAvg=Math.max(0,parseInt(row[COL_APR_AVG]||0)||0);
+    // Apr total: try col H (idx 7) first, then sum cols U/T area or fallback
+    const aprT=Math.max(0,parseInt(row[COL_APR_T]||row[8]||0)||0);
     const mayAvg=DATES.length>0?Math.round(mayT/DATES.length):0;
     const gap=mayAvg-aprAvg;
-    return{id:parseInt(row[0])||0,name:(row[1]||'').trim(),cat:(row[2]||'').trim(),hub:(row[3]||'').trim(),kam:(row[4]||'').trim(),aprAvg,aprT,mayT,gap,d};
-  });
+    const rawId=(row[COL_ID]||'').trim();
+    const numId=parseInt(rawId)||0;
+    const cat=(row[1]||'').trim(); // col B = Category
+    return{id:numId,rawId,name:(row[COL_NAME]||'').trim(),cat,hub:(row[COL_HUB]||'').trim(),kam:(row[COL_KAM]||'').trim(),aprAvg,aprT,mayT,gap,d};
+  }).filter(m=>m.name||m.rawId); // remove blank rows
   TOTAL=MX.reduce((a,m)=>a+m.mayT,0);
   if(grandRow){const sumD=dateCols.map(dc=>parseInt(grandRow[dc.idx]||0)||0);GRAND=[TOTAL,...sumD];}
   else{const sumD=dateCols.map(dc=>merchantRows.reduce((s,r)=>s+(parseInt(r[dc.idx]||0)||0),0));GRAND=[TOTAL,...sumD];}
-  if(targetRow){const tv=parseInt(targetRow[6]||targetRow[7]||0)||0;_MONTHLY_TARGET=tv>0?tv:Math.round(TOTAL*0.916);}
-  else{_MONTHLY_TARGET=Math.round(TOTAL*0.916);}
+  if(targetRow){
+    // Target total likely stored in a summary col — check cols 7-20 for a large number
+    let tv=0;
+    for(let c=7;c<=20&&!tv;c++){const v=parseInt(targetRow[c]||0)||0;if(v>100)tv=v;}
+    if(!tv){const v=parseInt(targetRow[COL_APR_T]||0)||0;tv=v;}
+    _MONTHLY_TARGET=tv>0?tv:Math.round(TOTAL*0.916);
+  }else{_MONTHLY_TARGET=Math.round(TOTAL*0.916);}
   const dailyTarget=Math.round(_MONTHLY_TARGET/Math.max(DATES.length,1));
   GAP=[0,...GRAND.slice(1).map(v=>v-dailyTarget)];
   const kamNames=[...new Set(MX.map(m=>m.kam).filter(Boolean))];
@@ -685,16 +709,90 @@ function renderMetrics(){
 }
 function renderAlertBanner(){const n=zeroAlerts().length;document.getElementById('alertCount').textContent=n;if(n>0){document.getElementById('alertBanner').style.display='flex';document.getElementById('alertBannerText').textContent=`🚨 ${n} merchant${n>1?'s':''} detected`;}}
 function renderCharts(){const cc=getChartColors();const dl=DATES.slice(1),do_=GRAND.slice(1),dg=GAP.slice(1);if(dailyChartObj){dailyChartObj.destroy();}dailyChartObj=new Chart(document.getElementById('dailyChart'),{type:'bar',data:{labels:dl,datasets:[{label:'Orders',data:do_,backgroundColor:'rgba(245,197,24,0.18)',borderColor:'#f5c518',borderWidth:1.5,borderRadius:3,order:2},{label:'vs Target',data:dg,type:'line',borderColor:'#e85c5c',backgroundColor:'transparent',borderWidth:1.5,pointRadius:3,pointBackgroundColor:'#e85c5c',pointBorderColor:cc.borderBg,pointBorderWidth:1.5,borderDash:[5,3],yAxisID:'y2',order:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:cc.tooltipBg,borderColor:cc.tooltipBorder,borderWidth:1,titleColor:cc.tooltipTitle,bodyColor:cc.tooltipBody,mode:'index'}},scales:{x:{ticks:{color:cc.tickColor,font:{size:9},autoSkip:false,maxRotation:45},grid:{color:cc.gridColor}},y:{ticks:{color:cc.tickColor,font:{size:9}},grid:{color:cc.gridColor}},y2:{position:'right',ticks:{color:cc.tickColor,font:{size:9}},grid:{display:false}}}}});const pl=document.getElementById('pieLegend');pl.innerHTML='';KAMS.forEach((k,i)=>{pl.innerHTML+=`<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)"><div style="width:8px;height:8px;border-radius:2px;background:${KC[i]};flex-shrink:0"></div>${k.name.split(' ')[0]}</div>`;});if(pieChartObj){pieChartObj.destroy();}pieChartObj=new Chart(document.getElementById('pieChart'),{type:'doughnut',data:{labels:KAMS.map(k=>k.name.split(' ')[0]),datasets:[{data:KAMS.map(k=>k.data[0]),backgroundColor:KC,borderWidth:3,borderColor:cc.borderBg}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false},tooltip:{backgroundColor:cc.tooltipBg,borderColor:cc.tooltipBorder,borderWidth:1,callbacks:{label:c=>` ${c.label}: ${c.raw.toLocaleString()} (${Math.round(c.raw/TOTAL*100)}%)`}}}}});}
-function renderKAMDetails(){const el=document.getElementById('kamDetailsPanel');if(!el)return;const KAM_META={'Ahmed Asif Rashid':{team:'Team Grid (Team Rashid)',target:0},'Nuruzzaman Nahid':{team:'Team Nahid',target:0}};el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:12px">${KAMS.map((k,i)=>{const meta=KAM_META[k.name]||{team:'—',target:0};const total=k.data[0];const merchants=MX.filter(m=>m.kam===k.name).length;const kc=KC[i];const daily=k.data.slice(1);const avg=Math.round(daily.reduce((a,b)=>a+b,0)/daily.length);const kamTarget=Math.round(_MONTHLY_TARGET*(total/Math.max(TOTAL,1)));const pct=kamTarget>0?Math.round(total/kamTarget*100):0;return`<div style="flex:1;min-width:220px;border:1px solid ${kc}33;border-radius:var(--r);padding:14px 16px;background:rgba(${rgb(kc)},0.04)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><div style="width:10px;height:10px;border-radius:50%;background:${kc};flex-shrink:0"></div><div><div style="font-weight:600;font-size:13px;color:var(--text)">${k.name}</div><div style="font-size:10px;color:${kc};font-weight:500;margin-top:1px">${meta.team}</div></div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px"><div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px"><div style="font-size:9px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">Merchants</div><div style="font-size:18px;font-weight:700;color:${kc};margin-top:2px">${merchants}</div></div><div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px"><div style="font-size:9px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">May Orders</div><div style="font-size:18px;font-weight:700;color:var(--text);margin-top:2px">${total.toLocaleString()}</div></div><div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px"><div style="font-size:9px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">Avg/Day</div><div style="font-size:18px;font-weight:700;color:var(--text);margin-top:2px">${avg}</div></div><div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px"><div style="font-size:9px;color:var(--text3);letter-spacing:0.06em;text-transform:uppercase">Team Target</div><div style="font-size:18px;font-weight:700;color:${pct>=100?'var(--green)':'var(--amber)'};margin-top:2px">${pct}%</div><div style="font-size:9px;color:var(--text3)">${total.toLocaleString()} / ${kamTarget.toLocaleString()}</div></div></div></div>`;}).join('')}</div>`;}
+function isRashidKAM(name){const n=(name||'').toLowerCase();return n.includes('rashid');}
+function isNahidKAM(name){const n=(name||'').toLowerCase();return n.includes('nahid');}
+function getTeamLabel(kamName){if(isRashidKAM(kamName))return'Team Grid';if(isNahidKAM(kamName))return'Team Nahid';return'Team Grid';}
+function renderKAMDetails(){
+  const el=document.getElementById('kamDetailsPanel');if(!el)return;
+  // Aggregate ALL merchants under 2 KAMs based on name matching
+  // Rashid = Team Grid (Lead), Nahid = Team Nahid (Sub Lead)
+  // Any merchant whose kam field contains 'rashid' → Team Grid; 'nahid' → Team Nahid
+  // For this sheet, we use the KAMS array and assign each to a team
+  const rashidKAMs=KAMS.filter(k=>isRashidKAM(k.name));
+  const nahidKAMs=KAMS.filter(k=>isNahidKAM(k.name));
+  const rashidMerchants=MX.filter(m=>isRashidKAM(m.kam));
+  const nahidMerchants=MX.filter(m=>isNahidKAM(m.kam));
+  // If no explicit match found, split 50/50 by KAMS order (fallback)
+  const rMerch=rashidMerchants.length>0?rashidMerchants:MX.filter((_,i)=>i%2===0);
+  const nMerch=nahidMerchants.length>0?nahidMerchants:MX.filter((_,i)=>i%2===1);
+  const days=Math.max(DATES.length,1);
+  function teamStats(merchants,teamColor,teamTarget){
+    const total=merchants.reduce((s,m)=>s+m.mayT,0);
+    const avg=Math.round(total/days);
+    const pct=teamTarget>0?Math.round(total/teamTarget*100):Math.round(total/Math.max(TOTAL,1)*100);
+    const alerts=merchants.filter(m=>{const d=m.d;for(let i=d.length-1;i>=1;i--){if(d[i]===0&&d[i-1]===0)return true;}return false;}).length;
+    return{total,avg,pct,alerts,merchants:merchants.length};
+  }
+  const rTarget=Math.round(_MONTHLY_TARGET*0.5);
+  const nTarget=Math.round(_MONTHLY_TARGET*0.5);
+  const rs=teamStats(rMerch,'#4a90e2',rTarget);
+  const ns=teamStats(nMerch,'#2ecc8f',nTarget);
+  const teams=[
+    {name:'Ahmed Asif Rashid',role:'Team Lead',team:'Team Grid',color:'#4a90e2',stats:rs,target:rTarget},
+    {name:'Nuruzzaman Nahid',role:'Sub Lead',team:'Team Nahid',color:'#2ecc8f',stats:ns,target:nTarget}
+  ];
+  el.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:14px">${teams.map(t=>{
+    const s=t.stats;const c=t.color;const pct=t.target>0?Math.round(s.total/t.target*100):0;
+    const pctColor=pct>=100?'var(--green)':pct>=80?'var(--amber)':'var(--red)';
+    const barW=Math.min(pct,100);
+    return`<div style="flex:1;min-width:260px;border:1px solid ${c}44;border-radius:var(--r);padding:16px 18px;background:rgba(${rgb(c)},0.05)">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:${c}22;border:2px solid ${c};display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:${c}">${t.name.split(' ').map(x=>x[0]).slice(0,2).join('')}</div>
+          <div>
+            <div style="font-weight:700;font-size:13px;color:var(--text)">${t.name}</div>
+            <div style="font-size:10px;color:${c};font-weight:600;margin-top:1px">${t.team} · ${t.role}</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Team Target</div>
+          <div style="font-size:20px;font-weight:800;color:${pctColor};line-height:1.1">${pct}%</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+        <div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Merchants</div>
+          <div style="font-size:20px;font-weight:700;color:${c};margin-top:2px">${s.merchants}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">May Orders</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:2px">${s.total.toLocaleString()}</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--r-sm);padding:8px 10px;text-align:center">
+          <div style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Avg / Day</div>
+          <div style="font-size:20px;font-weight:700;color:var(--text);margin-top:2px">${s.avg}</div>
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:4px">
+        <span>Progress vs Target</span>
+        <span style="color:${pctColor};font-weight:600">${s.total.toLocaleString()} / ${t.target.toLocaleString()}</span>
+      </div>
+      <div style="background:var(--bg4);border-radius:3px;height:6px;overflow:hidden">
+        <div style="height:100%;width:${barW}%;background:${c};border-radius:3px;transition:width .4s"></div>
+      </div>
+      ${s.alerts>0?`<div style="margin-top:8px;font-size:10px;color:var(--red)">⚡ ${s.alerts} merchant${s.alerts>1?'s':''} with zero-order streaks</div>`:''}
+    </div>`;
+  }).join('')}</div>`;
+}
 function renderKAMTable(){document.getElementById('kamTableBody').innerHTML=KAMS.map((k,i)=>{const daily=k.data.slice(1),total=k.data[0];const share=Math.round(total/TOTAL*100);const avg=Math.round(daily.reduce((a,b)=>a+b,0)/daily.length);const peak=Math.max(...daily);const diff=daily.slice(-4).reduce((a,b)=>a+b,0)-daily.slice(0,4).reduce((a,b)=>a+b,0);const badge=diff>50?`<span class="hbadge hbadge-better">↑ Trending</span>`:diff<-100?`<span class="hbadge hbadge-poor">↓ Slowing</span>`:`<span class="hbadge hbadge-good">~ Stable</span>`;const mx=Math.max(...daily)||1;const spark=`<span class="spark">${daily.map(v=>`<span class="spark-bar" style="background:${KC[i]};opacity:0.7;height:${Math.round(v/mx*16)+2}px"></span>`).join('')}</span>`;return`<tr><td><div style="display:flex;align-items:center;gap:7px"><div style="width:8px;height:8px;border-radius:50%;background:${KC[i]};flex-shrink:0"></div><span style="font-weight:500">${k.name}</span></div></td><td class="r">${total.toLocaleString()}</td><td class="r">${share}%</td><td class="c">${badge}</td><td class="r">${peak.toLocaleString()}</td><td class="r">${avg.toLocaleString()}</td><td>${spark}</td></tr>`;}).join('');}
 let mKamFilter='All';
-function kamTeam(name){if(!name)return'';const n=name.toLowerCase();if(n.includes('rashid'))return'Team Grid';if(n.includes('nahid'))return'Team Nahid';const idx=KAMS.findIndex(k=>k.name===name);return idx>=0?`Team ${name.split(' ').slice(-1)[0]}`:'';} function renderMerchantTable(){const q=(document.getElementById('merchantSearch')?.value||'').toLowerCase();const za=new Set(zeroAlerts().map(a=>a.m.id));document.getElementById('merchantTableBody').innerHTML=MX.filter(m=>{const mq=!q||m.name.toLowerCase().includes(q)||String(m.id).includes(q)||m.hub.toLowerCase().includes(q);return mq&&(mKamFilter==='All'||m.kam===mKamFilter);}).map(m=>{const p=hPct(m),g=hGrade(p),isA=za.has(m.id),kc=kamColor(m.kam),team=kamTeam(m.kam);return`<tr class="${isA?'zero-alert-row':''}"><td><div class="merchant-name">${isA?`<span class="pulse-dot"></span>`:''}${m.name}</div><div class="merchant-id">#${m.id}</div></td><td><span class="hub-badge">${m.hub||'—'}</span></td><td><div style="font-weight:500;color:${kc};font-size:11px">${m.kam}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${team}${m.cat?` · ${m.cat}`:''}</div></td><td class="r">${m.aprT.toLocaleString()}</td><td class="r">${m.mayT.toLocaleString()}</td><td class="r ${m.gap>=0?'up':'dn'}">${m.gap>=0?'+':''}${m.gap}</td><td><div style="font-size:10px;color:var(--text3);margin-bottom:3px;display:flex;justify-content:space-between"><span>${p}%</span></div><div class="health-track health-${g.cls}"><div class="health-fill" style="width:${Math.min(p,100)}%"></div></div></td><td class="c"><span class="hbadge ${g.bc}">${g.label}</span></td></tr>`;}).join('');}
+function kamTeam(name){if(!name)return'';const n=name.toLowerCase();if(n.includes('rashid'))return'Team Grid';if(n.includes('nahid'))return'Team Nahid';const idx=KAMS.findIndex(k=>k.name===name);return idx>=0?`Team ${name.split(' ').slice(-1)[0]}`:'';} function renderMerchantTable(){const q=(document.getElementById('merchantSearch')?.value||'').toLowerCase();const za=new Set(zeroAlerts().map(a=>a.m.rawId||String(a.m.id)));document.getElementById('merchantTableBody').innerHTML=MX.filter(m=>{const mid=m.rawId||String(m.id);const mq=!q||m.name.toLowerCase().includes(q)||mid.toLowerCase().includes(q)||m.hub.toLowerCase().includes(q)||m.kam.toLowerCase().includes(q);return mq&&(mKamFilter==='All'||m.kam===mKamFilter);}).map(m=>{const p=hPct(m),g=hGrade(p),mid=m.rawId||String(m.id),isA=za.has(mid),kc=kamColor(m.kam),team=kamTeam(m.kam);return`<tr class="${isA?'zero-alert-row':''}"><td><div class="merchant-name">${isA?`<span class="pulse-dot"></span>`:''}${m.name}</div><div class="merchant-id">#${mid}</div></td><td><span class="hub-badge">${m.hub||'—'}</span></td><td><div style="font-weight:500;color:${kc};font-size:11px">${m.kam}</div><div style="font-size:10px;color:var(--text3);margin-top:1px">${team}${m.cat?` · ${m.cat}`:''}</div></td><td class="r">${m.aprT.toLocaleString()}</td><td class="r">${m.mayT.toLocaleString()}</td><td class="r ${m.gap>=0?'up':'dn'}">${m.gap>=0?'+':''}${m.gap}</td><td><div style="font-size:10px;color:var(--text3);margin-bottom:3px;display:flex;justify-content:space-between"><span>${p}%</span></div><div class="health-track health-${g.cls}"><div class="health-fill" style="width:${Math.min(p,100)}%"></div></div></td><td class="c"><span class="hbadge ${g.bc}">${g.label}</span></td></tr>`;}).join('');}
 function buildKamBtns(containerId){const el=document.getElementById(containerId);const kams=['All',...KAMS.map(k=>k.name)];el.innerHTML=kams.map((k,i)=>{const c=k==='All'?'#7b8799':KC[i-1];return`<button class="kam-btn" style="border-color:rgba(${rgb(c)},0.3);color:${c}" onclick="setKF('${containerId}','${k}',this,'${c}')">${k==='All'?'All KAMs':k.split(' ')[0]}</button>`;}).join('');const first=el.querySelector('.kam-btn');if(first){first.style.background=`rgba(123,135,153,0.18)`;first.style.fontWeight='500';}}
 function setKF(cid,kam,btn,color){document.querySelectorAll(`#${cid} .kam-btn`).forEach(b=>{b.style.background='';b.style.fontWeight='';});btn.style.background=`rgba(${rgb(color)},0.15)`;btn.style.fontWeight='500';if(cid==='kamFilterBtns'){mKamFilter=kam;renderMerchantTable();}if(cid==='dodKamBtns'){dKamFilter=kam;renderDODGrid();}}
 let dKamFilter='All';
-function renderDODGrid(){const q=(document.getElementById('dodSearch')?.value||'').toLowerCase();const za=new Set(zeroAlerts().map(a=>a.m.id));const filtered=MX.filter(m=>(!q||m.name.toLowerCase().includes(q)||String(m.id).includes(q))&&(dKamFilter==='All'||m.kam===dKamFilter));const grouped={};KAMS.forEach(k=>{grouped[k.name]=[];});filtered.forEach(m=>{if(grouped[m.kam])grouped[m.kam].push(m);});const maxV=Math.max(...MX.flatMap(m=>m.d));let html=`<div class="dod-dates-row"><div class="dod-name-spacer"></div>${DATES.map(d=>`<div class="dod-date-lbl">${d.slice(3)}</div>`).join('')}</div>`;KAMS.forEach((kObj,ki)=>{const arr=grouped[kObj.name];if(!arr||!arr.length)return;const c=KC[ki];html+=`<div class="dod-kam-hdr"><div style="width:7px;height:7px;border-radius:50%;background:${c}"></div>${kObj.name}</div>`;arr.forEach(m=>{const isA=za.has(m.id);html+=`<div class="dod-row" style="${isA?'background:rgba(232,92,92,0.04)':''}"><div class="dod-cell-name">${isA?'⚡ ':''}<span style="${isA?'color:#e85c5c;font-weight:600':''}" title="${m.name}">${m.name}</span></div>`;m.d.forEach(v=>{const p=v/maxV,a=v===0?0.05:(p*0.82+0.1).toFixed(2);const bg=v===0?'rgba(232,92,92,0.18)':`rgba(${rgb(c)},${a})`;const tc=p>0.55?'#fff':v===0?'#e85c5c':'#7b8799';html+=`<div class="dod-cell" style="background:${bg};color:${tc}">${v>0?v:'✕'}</div>`;});html+='</div>';});});document.getElementById('dodGrid').innerHTML=html;}
+function renderDODGrid(){const q=(document.getElementById('dodSearch')?.value||'').toLowerCase();const za=new Set(zeroAlerts().map(a=>a.m.rawId||String(a.m.id)));const filtered=MX.filter(m=>{const mid=m.rawId||String(m.id);return(!q||m.name.toLowerCase().includes(q)||mid.toLowerCase().includes(q))&&(dKamFilter==='All'||m.kam===dKamFilter);});const grouped={};KAMS.forEach(k=>{grouped[k.name]=[];});filtered.forEach(m=>{if(grouped[m.kam])grouped[m.kam].push(m);});const maxV=Math.max(...MX.flatMap(m=>m.d));let html=`<div class="dod-dates-row"><div class="dod-name-spacer"></div>${DATES.map(d=>`<div class="dod-date-lbl">${d.slice(3)}</div>`).join('')}</div>`;KAMS.forEach((kObj,ki)=>{const arr=grouped[kObj.name];if(!arr||!arr.length)return;const c=KC[ki];html+=`<div class="dod-kam-hdr"><div style="width:7px;height:7px;border-radius:50%;background:${c}"></div>${kObj.name}</div>`;arr.forEach(m=>{const mid=m.rawId||String(m.id);const isA=za.has(mid);html+=`<div class="dod-row" style="${isA?'background:rgba(232,92,92,0.04)':''}"><div class="dod-cell-name">${isA?'⚡ ':''}<span style="${isA?'color:#e85c5c;font-weight:600':''}" title="${m.name}">${m.name}</span></div>`;m.d.forEach(v=>{const p=v/maxV,a=v===0?0.05:(p*0.82+0.1).toFixed(2);const bg=v===0?'rgba(232,92,92,0.18)':`rgba(${rgb(c)},${a})`;const tc=p>0.55?'#fff':v===0?'#e85c5c':'#7b8799';html+=`<div class="dod-cell" style="background:${bg};color:${tc}">${v>0?v:'✕'}</div>`;});html+='</div>';});});document.getElementById('dodGrid').innerHTML=html;}
 function renderHealthView(){const all=MX.map(hPct);const poor=all.filter(p=>p<=60).length;const good=all.filter(p=>p>60&&p<=80).length;const better=all.filter(p=>p>80).length;const avgH=Math.round(all.reduce((a,b)=>a+b,0)/all.length);document.getElementById('healthMetrics').innerHTML=`<div class="metric" style="--mc:#e85c5c"><div class="metric-lbl">Poor ≤60%</div><div class="metric-val dn">${poor}</div><div class="metric-sub">Urgent attention</div></div><div class="metric" style="--mc:#f0a500"><div class="metric-lbl">Good 61–80%</div><div class="metric-val" style="color:var(--amber)">${good}</div><div class="metric-sub">Moderate performance</div></div><div class="metric" style="--mc:#2ecc8f"><div class="metric-lbl">Better 81%+</div><div class="metric-val up">${better}</div><div class="metric-sub">On/above track</div></div><div class="metric" style="--mc:#b07ef7"><div class="metric-lbl">Avg Health</div><div class="metric-val">${avgH}%</div><div class="metric-sub">All merchants</div></div>`;if(!healthChartObj){const cc=getChartColors();const cats={};MX.forEach(m=>{if(!cats[m.cat])cats[m.cat]=[];cats[m.cat].push(hPct(m));});const cl=Object.keys(cats);const ca=cl.map(c=>Math.round(cats[c].reduce((a,b)=>a+b,0)/cats[c].length));const cc2=ca.map(v=>v<=60?'rgba(232,92,92,0.7)':v<=80?'rgba(240,165,0,0.7)':'rgba(46,204,143,0.7)');healthChartObj=new Chart(document.getElementById('healthChart'),{type:'bar',data:{labels:cl,datasets:[{label:'Avg Health %',data:ca,backgroundColor:cc2,borderRadius:4,borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:cc.tooltipBg,borderColor:cc.tooltipBorder,borderWidth:1,callbacks:{label:c=>`  ${c.raw}% health`}}},scales:{x:{ticks:{color:cc.tickColor,font:{size:9}},grid:{color:cc.gridColor},max:130},y:{ticks:{color:cc.tickColor,font:{size:10}},grid:{display:false}}}}});}document.getElementById('healthTableBody').innerHTML=[...MX].sort((a,b)=>hPct(b)-hPct(a)).map(m=>{const p=hPct(m),g=hGrade(p),mayAvg=Math.round(m.mayT/14),kc=kamColor(m.kam);return`<tr><td><div class="merchant-name">${m.name}</div><div class="merchant-id">#${m.id}</div></td><td><span style="color:${kc};font-size:11px;font-weight:500">${m.kam}</span><div style="font-size:9px;color:var(--text3);margin-top:1px">${kamTeam(m.kam)}</div></td><td class="r">${m.aprAvg}</td><td class="r">${mayAvg}</td><td class="r" style="font-weight:600;color:${p<=60?'var(--red)':p<=80?'var(--amber)':'var(--green)'}">${p}%</td><td><div class="health-track health-${g.cls}"><div class="health-fill" style="width:${Math.min(p,100)}%"></div></div></td><td class="c"><span class="hbadge ${g.bc}">${g.label}</span></td></tr>`;}).join('');}
-function renderAlerts(){const alerts=zeroAlerts();const el=document.getElementById('alertsList');if(!alerts.length){el.innerHTML=`<div style="text-align:center;padding:3rem;color:var(--text3);font-size:14px">✅ No zero-order alerts at this time.</div>`;return;}el.innerHTML=`<div style="margin-bottom:1rem;padding:10px 14px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r-sm);font-size:12px;color:var(--text2)"><strong style="color:var(--red)">Alert Rule:</strong> Merchant with 0 orders on 2 consecutive days → 3rd day triggers this alert. ${alerts.length} active alert${alerts.length>1?'s':''}.</div>`+alerts.map(({m,streak,startIdx})=>{const p=hPct(m),g=hGrade(p),kc=kamColor(m.kam),recent=m.d.slice(-7);return`<div class="alert-card"><div class="alert-card-top"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span class="pulse-dot"></span><span style="font-size:14px;font-weight:600">${m.name}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)">#${m.id}</span></div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">📍 Hub: <b>${m.hub||'—'}</b> &nbsp;·&nbsp; 🏷 ${m.cat}</div><div style="font-size:11px;color:var(--text2)">👤 KAM: <b style="color:${kc}">${m.kam}</b></div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:2px">Consecutive zero days</div><div style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--red);line-height:1">${streak}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Since ${DATES[startIdx]||'—'}</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:5px">Merchant Health</div><span class="hbadge ${g.bc}" style="font-size:12px;padding:4px 12px">${p}% · ${g.label}</span><div style="margin-top:8px;font-size:11px;color:var(--text3)">May total: <b style="color:var(--text2)">${m.mayT.toLocaleString()}</b></div><div style="font-size:11px;color:var(--text3)">Apr avg/day: <b style="color:var(--text2)">${m.aprAvg}</b></div></div></div><div><div style="font-size:9px;color:var(--text3);margin-bottom:5px;letter-spacing:0.06em;text-transform:uppercase">Last 7 days — ${DATES.slice(-7).join(' · ')}</div><div class="alert-recent">${recent.map((v,i)=>{const isZ=v===0;const bg=isZ?'rgba(232,92,92,0.2)':'rgba(74,144,226,0.15)';const c=isZ?'#e85c5c':'#7b8799';return`<div class="alert-day-cell" style="background:${bg}"><div style="font-size:9px;color:var(--text3)">${(DATES[DATES.length-7+i]||'').slice(3)}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:${c};margin-top:2px">${v===0?'✕':v}</div></div>`;}).join('')}</div></div></div>`;}).join('');}
+function renderAlerts(){const alerts=zeroAlerts();const el=document.getElementById('alertsList');if(!alerts.length){el.innerHTML=`<div style="text-align:center;padding:3rem;color:var(--text3);font-size:14px">✅ No zero-order alerts at this time.</div>`;return;}el.innerHTML=`<div style="margin-bottom:1rem;padding:10px 14px;background:var(--red-dim);border:1px solid var(--red-border);border-radius:var(--r-sm);font-size:12px;color:var(--text2)"><strong style="color:var(--red)">Alert Rule:</strong> Merchant with 0 orders on 2 consecutive days → 3rd day triggers this alert. ${alerts.length} active alert${alerts.length>1?'s':''}.</div>`+alerts.map(({m,streak,startIdx})=>{const p=hPct(m),g=hGrade(p),kc=kamColor(m.kam),recent=m.d.slice(-7);return`<div class="alert-card"><div class="alert-card-top"><div style="flex:1;min-width:200px"><div style="display:flex;align-items:center;gap:8px;margin-bottom:5px"><span class="pulse-dot"></span><span style="font-size:14px;font-weight:600">${m.name}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)">#${m.rawId||m.id}</span></div><div style="font-size:11px;color:var(--text2);margin-bottom:2px">📍 Hub: <b>${m.hub||'—'}</b> &nbsp;·&nbsp; 🏷 ${m.cat}</div><div style="font-size:11px;color:var(--text2)">👤 KAM: <b style="color:${kc}">${m.kam}</b></div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:2px">Consecutive zero days</div><div style="font-size:32px;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--red);line-height:1">${streak}</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Since ${DATES[startIdx]||'—'}</div></div><div style="text-align:right"><div style="font-size:10px;color:var(--text3);margin-bottom:5px">Merchant Health</div><span class="hbadge ${g.bc}" style="font-size:12px;padding:4px 12px">${p}% · ${g.label}</span><div style="margin-top:8px;font-size:11px;color:var(--text3)">May total: <b style="color:var(--text2)">${m.mayT.toLocaleString()}</b></div><div style="font-size:11px;color:var(--text3)">Apr avg/day: <b style="color:var(--text2)">${m.aprAvg}</b></div></div></div><div><div style="font-size:9px;color:var(--text3);margin-bottom:5px;letter-spacing:0.06em;text-transform:uppercase">Last 7 days — ${DATES.slice(-7).join(' · ')}</div><div class="alert-recent">${recent.map((v,i)=>{const isZ=v===0;const bg=isZ?'rgba(232,92,92,0.2)':'rgba(74,144,226,0.15)';const c=isZ?'#e85c5c':'#7b8799';return`<div class="alert-day-cell" style="background:${bg}"><div style="font-size:9px;color:var(--text3)">${(DATES[DATES.length-7+i]||'').slice(3)}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:700;color:${c};margin-top:2px">${v===0?'✕':v}</div></div>`;}).join('')}</div></div></div>`;}).join('');}
 const VIEWS=['overview','merchants','dod','health','alerts'];
 function showView(name,btn){VIEWS.forEach(v=>{document.getElementById(`view-${v}`).style.display=v===name?'block':'none';});document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');if(name==='dod')renderDODGrid();closeSidebar();}
 async function initDashboard(){
