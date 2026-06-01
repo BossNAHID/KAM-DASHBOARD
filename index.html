@@ -223,45 +223,6 @@ window.toggleEye = function(){
   var inp = document.getElementById('loginPass');
   if(inp) inp.type = (inp.type === 'password') ? 'text' : 'password';
 };
-window.doLogin = function(e){
-  if(e && e.preventDefault) e.preventDefault();
-  var emailRaw = document.getElementById('loginEmail');
-  var passRaw = document.getElementById('loginPass');
-  var err = document.getElementById('loginError');
-  var btn = document.getElementById('loginBtn');
-  if(!emailRaw || !passRaw) return;
-  var email = emailRaw.value.trim().toLowerCase();
-  var pass = passRaw.value.trim().toUpperCase();
-  if(!email || !pass){
-    if(err){ err.textContent = 'Please enter both email and employee ID.'; err.classList.add('show'); }
-    return;
-  }
-  if(btn){ btn.classList.add('loading'); btn.textContent = 'Signing in…'; }
-  setTimeout(function(){
-    var u = (typeof USERS !== 'undefined' ? USERS : {});
-    var user = u[email];
-    if(user && user.id === pass){
-      if(err) err.classList.remove('show');
-      localStorage.setItem('cb_kam_user', JSON.stringify({name:user.name, email:email, role:user.role, color:user.color}));
-      var ld = document.getElementById('loadingScreen');
-      if(ld){
-        ld.style.display = 'flex';
-        setTimeout(function(){ ld.classList.add('hiding'); }, 1800);
-        setTimeout(function(){ ld.style.display = 'none'; }, 2200);
-      }
-      var ls = document.getElementById('loginScreen');
-      var da = document.getElementById('dashApp');
-      if(ls) ls.style.display = 'none';
-      if(da) da.style.display = 'block';
-      if(typeof initDashboard === 'function') initDashboard();
-    } else {
-      if(err){ err.textContent = 'Invalid credentials. Please try again.'; err.classList.add('show'); }
-      if(btn){ btn.classList.remove('loading'); btn.textContent = 'Sign In →'; }
-      if(passRaw) passRaw.value = '';
-    }
-  }, 900);
-};
-</script>
 
 </head>
 <body>
@@ -570,7 +531,6 @@ function doLogin(e){if(e&&e.preventDefault)e.preventDefault();
     if(user){
       currentUser=user;
       console.log('[Login] Success for:',user.name);
-      alert('Login successful! Loading dashboard...');
       sessionStorage.setItem(SESSION_KEY,JSON.stringify(user));
       // Show loading screen
       const ls=document.getElementById('loadingScreen');
@@ -589,7 +549,6 @@ function doLogin(e){if(e&&e.preventDefault)e.preventDefault();
       btn.classList.remove('loading');btn.textContent='Sign In →';
       document.getElementById('loginErrorMsg').textContent='Invalid email or employee ID. Please try again.';
       console.log('[Login] Failed:',emailRaw,passRaw);
-      alert('Login failed! Check email and password.\nEmail: '+emailRaw+'\nPassword: '+passRaw);
       err.classList.add('show');
       document.getElementById('loginPass').value='';
       document.getElementById('loginPass').focus();
